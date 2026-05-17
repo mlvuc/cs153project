@@ -147,6 +147,9 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# Generated energy data
+data/*.csv
+
 # Environments
 .env
 .envrc
