@@ -75,7 +75,6 @@ def _run_tool(job_name: str, duration_hours: int, deadline_iso: str) -> dict:
     except ValueError as e:
         return {"error": str(e)}
 
-    # Pandas Timestamps aren't JSON-serializable — convert to strings
     def ts(t):
         return t.isoformat() if hasattr(t, "isoformat") else str(t)
 
@@ -118,12 +117,25 @@ class EnergyCopilot:
             base_url="https://openrouter.ai/api/v1",
         )
         self.history: list[dict] = []
+        self.scheduled_jobs: list[dict] = []  # accumulates every job scheduled this session
+
+    def _execute_tool_call(self, tc) -> dict:
+        """Run one tool call, append the result to history, and track scheduled jobs."""
+        args = json.loads(tc.function.arguments)
+        result = _run_tool(**args)
+        if "error" not in result:
+            self.scheduled_jobs.append(result)
+        self.history.append({
+            "role": "tool",
+            "tool_call_id": tc.id,
+            "content": json.dumps(result),
+        })
+        return result
 
     def chat(self, user_message: str) -> str:
         """Send a message, execute any tool calls, and return the final response."""
         self.history.append({"role": "user", "content": user_message})
 
-        # Agentic loop: keep going until the model stops requesting tools
         while True:
             response = self.client.chat.completions.create(
                 model=MODEL,
@@ -131,21 +143,16 @@ class EnergyCopilot:
                 tools=TOOLS,
                 tool_choice="auto",
             )
-
             message = response.choices[0].message
             finish_reason = response.choices[0].finish_reason
 
-            # Append assistant turn to history (include tool_calls if present)
             assistant_entry: dict = {"role": "assistant", "content": message.content}
             if message.tool_calls:
                 assistant_entry["tool_calls"] = [
                     {
                         "id": tc.id,
                         "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
+                        "function": {"name": tc.function.name, "arguments": tc.function.arguments},
                     }
                     for tc in message.tool_calls
                 ]
@@ -154,18 +161,72 @@ class EnergyCopilot:
             if finish_reason == "stop":
                 return message.content
 
-            # finish_reason == "tool_calls": run each requested tool and feed results back
             for tc in message.tool_calls:
-                args = json.loads(tc.function.arguments)
-                result = _run_tool(**args)
-                self.history.append(
+                self._execute_tool_call(tc)
+
+    def stream_chat(self, user_message: str):
+        """
+        Like chat() but yields the final response token by token.
+
+        Tool calls are handled non-streaming (they're fast and internal).
+        The final explanation is streamed for a real-time feel.
+        """
+        self.history.append({"role": "user", "content": user_message})
+
+        # Agentic loop: resolve all tool calls non-streaming
+        tool_calls_made = False
+        while True:
+            response = self.client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "system", "content": SYSTEM_PROMPT}] + self.history,
+                tools=TOOLS,
+                tool_choice="auto",
+            )
+            message = response.choices[0].message
+            finish_reason = response.choices[0].finish_reason
+
+            if finish_reason == "stop":
+                if not tool_calls_made:
+                    # Direct answer with no tool use — yield the response we have
+                    self.history.append({"role": "assistant", "content": message.content})
+                    yield message.content
+                    return
+                # Tool calls are done; break out to stream the final response
+                break
+
+            # Append assistant turn with tool_calls to history
+            tool_calls_made = True
+            self.history.append({
+                "role": "assistant",
+                "content": message.content,
+                "tool_calls": [
                     {
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "content": json.dumps(result),
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {"name": tc.function.name, "arguments": tc.function.arguments},
                     }
-                )
+                    for tc in message.tool_calls
+                ],
+            })
+            for tc in message.tool_calls:
+                self._execute_tool_call(tc)
+
+        # Stream the final explanation (no tools passed — this is text-only)
+        stream = self.client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "system", "content": SYSTEM_PROMPT}] + self.history,
+            stream=True,
+        )
+        full_content = ""
+        for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                text = chunk.choices[0].delta.content
+                full_content += text
+                yield text
+
+        self.history.append({"role": "assistant", "content": full_content})
 
     def reset(self):
-        """Clear conversation history to start a fresh session."""
+        """Clear conversation history and job queue to start a fresh session."""
         self.history = []
+        self.scheduled_jobs = []
