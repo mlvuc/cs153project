@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react'
-import Sidebar from './components/Sidebar'
-import Chat from './components/Chat'
+import SchedulerPage from './pages/SchedulerPage'
+import ForecastPage from './pages/ForecastPage'
+import DataCentersPage from './pages/DataCentersPage'
+import AboutPage from './pages/AboutPage'
 import './App.css'
 
+const NAV = [
+  { id: 'scheduler',    label: 'Scheduler' },
+  { id: 'forecast',     label: 'Forecast' },
+  { id: 'datacenters',  label: 'Data Centers' },
+  { id: 'about',        label: 'About' },
+]
+
 export default function App() {
+  const [page, setPage] = useState('scheduler')
   const [jobs, setJobs] = useState([])
   const [forecast, setForecast] = useState(null)
 
@@ -20,26 +30,45 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar forecast={forecast} jobs={jobs} />
-      <div className="main">
-        <header className="header">
-          <div className="header-left">
-            <span className="header-icon">⚡</span>
-            <div>
-              <h1>Energy-Aware Workload Scheduler</h1>
-              <p>Describe a job — get the cheapest, cleanest window to run it</p>
-            </div>
-          </div>
-          <div className="header-right">
-            <span className="live-dot">●</span>
-            <span className="live-label">Live</span>
-            {forecast && (
-              <span className="live-price">${forecast.current_price}/MWh</span>
-            )}
-          </div>
-        </header>
-        <Chat onJobScheduled={addJob} />
+
+      {/* ── Top navbar ── */}
+      <nav className="navbar">
+        <div className="navbar-brand">
+          <span className="navbar-icon">⚡</span>
+          Energy Copilot
+        </div>
+        <div className="navbar-nav">
+          {NAV.map(item => (
+            <button
+              key={item.id}
+              className={`nav-item ${page === item.id ? 'active' : ''}`}
+              onClick={() => setPage(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="navbar-right">
+          <span className="live-dot">●</span>
+          <span className="live-label">Live</span>
+          {forecast && <span className="live-price">${forecast.current_price}/MWh</span>}
+        </div>
+      </nav>
+
+      {/* ── Page content ── */}
+      <div className="page-content">
+        {page === 'scheduler' && (
+          <SchedulerPage
+            forecast={forecast}
+            jobs={jobs}
+            onJobScheduled={addJob}
+          />
+        )}
+        {page === 'forecast'    && <ForecastPage forecast={forecast} />}
+        {page === 'datacenters' && <DataCentersPage />}
+        {page === 'about'       && <AboutPage />}
       </div>
+
     </div>
   )
 }
