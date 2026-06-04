@@ -89,6 +89,31 @@
   overflow: hidden;
 }
 
+.resize-handle {
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.resize-handle:hover {
+  background: rgba(0, 212, 170, 0.25);
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 36px;
+  width: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 /* ── Scrollable info pages ───────────────────────────── */
 .info-page,
 .forecast-page {
