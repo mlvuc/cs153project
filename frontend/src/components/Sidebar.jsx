@@ -1,9 +1,12 @@
 import ForecastChart from './ForecastChart'
+import RegionSelector from './RegionSelector'
 
-export default function Sidebar({ forecast, jobs }) {
+export default function Sidebar({ forecast, jobs, region, onRegionChange }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">⚡ Energy Copilot</div>
+
+      <RegionSelector value={region} onChange={onRegionChange} />
 
       <div className="stat-grid">
         <div className="stat-card">
