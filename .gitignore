@@ -150,6 +150,10 @@ activemq-data/
 # Generated energy data
 data/*.csv
 
+# Node
+frontend/node_modules/
+frontend/dist/
+
 # Environments
 .env
 .envrc

@@ -5,5 +5,7 @@ jupyter>=1.0
 notebook>=7.0
 python-dotenv>=1.0
 openai>=1.0
+fastapi>=0.111
+uvicorn>=0.30
 streamlit>=1.35
 plotly>=5.20
