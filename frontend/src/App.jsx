@@ -6,23 +6,25 @@ import AboutPage from './pages/AboutPage'
 import './App.css'
 
 const NAV = [
-  { id: 'scheduler',    label: 'Scheduler' },
-  { id: 'forecast',     label: 'Forecast' },
-  { id: 'datacenters',  label: 'Data Centers' },
-  { id: 'about',        label: 'About' },
+  { id: 'scheduler',   label: 'Scheduler' },
+  { id: 'forecast',    label: 'Forecast' },
+  { id: 'datacenters', label: 'Data Centers' },
+  { id: 'about',       label: 'About' },
 ]
 
 export default function App() {
   const [page, setPage] = useState('scheduler')
   const [jobs, setJobs] = useState([])
   const [forecast, setForecast] = useState(null)
+  const [region, setRegion] = useState(null)
 
   useEffect(() => {
-    fetch('/api/forecast')
+    const url = region ? `/api/forecast?region=${region}` : '/api/forecast'
+    fetch(url)
       .then(r => r.json())
       .then(setForecast)
       .catch(console.error)
-  }, [])
+  }, [region])
 
   function addJob(job) {
     setJobs(prev => [...prev, job])
@@ -62,9 +64,11 @@ export default function App() {
             forecast={forecast}
             jobs={jobs}
             onJobScheduled={addJob}
+            region={region}
+            onRegionChange={setRegion}
           />
         )}
-        {page === 'forecast'    && <ForecastPage forecast={forecast} />}
+        {page === 'forecast'    && <ForecastPage forecast={forecast} region={region} onRegionChange={setRegion} />}
         {page === 'datacenters' && <DataCentersPage />}
         {page === 'about'       && <AboutPage />}
       </div>

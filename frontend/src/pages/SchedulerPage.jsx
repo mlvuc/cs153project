@@ -6,7 +6,7 @@ const MIN_WIDTH = 180
 const MAX_WIDTH = 560
 const DEFAULT_WIDTH = 272
 
-export default function SchedulerPage({ forecast, jobs, onJobScheduled }) {
+export default function SchedulerPage({ forecast, jobs, onJobScheduled, region, onRegionChange }) {
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH)
   const isResizing = useRef(false)
 
@@ -40,6 +40,8 @@ export default function SchedulerPage({ forecast, jobs, onJobScheduled }) {
       <Sidebar
         forecast={forecast}
         jobs={jobs}
+        region={region}
+        onRegionChange={onRegionChange}
         style={{ width: sidebarWidth, minWidth: sidebarWidth }}
       />
       <div className="resize-handle" onMouseDown={startResize} />

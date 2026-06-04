@@ -4,16 +4,17 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from copilot.planner import EnergyCopilot
 from scheduler.energy_data import load_or_generate
+from scheduler.regions import REGIONS, generate_regional_data
 
 app = FastAPI()
 
@@ -31,11 +32,8 @@ class ChatRequest(BaseModel):
     message: str
 
 
-@app.get("/forecast")
-def get_forecast():
-    df = load_or_generate()
+def _forecast_response(df: pd.DataFrame, region_id: str | None = None) -> dict:
     now = pd.Timestamp(datetime.now())
-
     window = df[df["timestamp"] >= now].head(24)
     if window.empty:
         window = df.head(24)
@@ -44,6 +42,9 @@ def get_forecast():
     cheapest = window.loc[window["price_per_mwh"].idxmin()]
 
     return {
+        "region": region_id,
+        "region_name": REGIONS[region_id]["name"] if region_id and region_id in REGIONS else "Default",
+        "region_description": REGIONS[region_id]["description"] if region_id and region_id in REGIONS else "",
         "current_price": round(current_price, 0),
         "cheapest_hour": {
             "price": round(float(cheapest["price_per_mwh"]), 0),
@@ -59,6 +60,23 @@ def get_forecast():
             for row in window.itertuples()
         ],
     }
+
+
+@app.get("/regions")
+def get_regions():
+    return [
+        {"id": rid, "name": cfg["name"], "description": cfg["description"]}
+        for rid, cfg in REGIONS.items()
+    ]
+
+
+@app.get("/forecast")
+def get_forecast(region: str = Query(default=None)):
+    if region and region in REGIONS:
+        df = generate_regional_data(region, days=2)
+    else:
+        df = load_or_generate()
+    return _forecast_response(df, region)
 
 
 @app.post("/chat")
