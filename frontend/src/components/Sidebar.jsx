@@ -1,9 +1,9 @@
 import ForecastChart from './ForecastChart'
 
-export default function Sidebar({ forecast, jobs }) {
+export default function Sidebar({ forecast, jobs, style }) {
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">⚡ Energy Copilot</div>
+    <aside className="sidebar" style={style}>
+      <div className="sidebar-logo">Energy Forecast</div>
 
       <div className="stat-grid">
         <div className="stat-card">
