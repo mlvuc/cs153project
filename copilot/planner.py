@@ -46,16 +46,25 @@ TOOLS = [
     }
 ]
 
-SYSTEM_PROMPT = """You are an energy-aware workload scheduling copilot for data center operations.
+def _system_prompt() -> str:
+    now = datetime.now()
+    return f"""You are an energy-aware workload scheduling copilot for data center operations.
 Your job is to help ops teams schedule compute jobs — ML training runs, batch pipelines, data exports, etc. — \
 to minimize energy cost and carbon emissions.
+
+The current date and time is: {now.strftime("%Y-%m-%d %H:%M")} (local time).
+Use this to resolve relative deadlines like "tonight", "tomorrow morning", or "in 6 hours" \
+into exact ISO 8601 timestamps before calling the schedule_job tool.
 
 When a user describes a job, use the schedule_job tool to find the optimal time window. \
 After receiving the result, give a clear, concise recommendation:
 - When to start and why that window is cheapest
-- Cost and carbon savings vs running immediately
-- Call out any trade-offs (e.g. cheapest window is higher carbon than alternatives)
-- Briefly mention the next-best window if it's close
+- State cost savings as a percentage. If savings are 0% (the optimal window is right now), say so \
+explicitly: "Starting now is already optimal — no benefit to waiting."
+- If the price spread across all candidate windows is less than $2/MWh, tell the user that prices \
+are essentially flat and timing barely matters — they can start any time before the deadline.
+- Call out any trade-offs (e.g. cheapest window has higher carbon than alternatives)
+- Briefly mention the next-best window if it's meaningfully different (>$2/MWh or >10g CO₂/kWh)
 
 Be direct. Ops teams need actionable answers, not lengthy explanations."""
 
@@ -139,7 +148,7 @@ class EnergyCopilot:
         while True:
             response = self.client.chat.completions.create(
                 model=MODEL,
-                messages=[{"role": "system", "content": SYSTEM_PROMPT}] + self.history,
+                messages=[{"role": "system", "content": _system_prompt()}] + self.history,
                 tools=TOOLS,
                 tool_choice="auto",
             )
@@ -178,7 +187,7 @@ class EnergyCopilot:
         while True:
             response = self.client.chat.completions.create(
                 model=MODEL,
-                messages=[{"role": "system", "content": SYSTEM_PROMPT}] + self.history,
+                messages=[{"role": "system", "content": _system_prompt()}] + self.history,
                 tools=TOOLS,
                 tool_choice="auto",
             )
@@ -214,7 +223,7 @@ class EnergyCopilot:
         # Stream the final explanation (no tools passed — this is text-only)
         stream = self.client.chat.completions.create(
             model=MODEL,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}] + self.history,
+            messages=[{"role": "system", "content": _system_prompt()}] + self.history,
             stream=True,
         )
         full_content = ""

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const CHIPS = [
   {
@@ -120,7 +121,7 @@ export default function Chat({ onJobScheduled }) {
             <div className="bubble">
               {msg.role === 'assistant' ? (
                 msg.content
-                  ? <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   : <span className="cursor" />
               ) : (
                 msg.content
