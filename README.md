@@ -35,10 +35,10 @@ jupyter notebook demo.ipynb
 
 ## Example Output
 
-Three jobs scheduled from 8:00 AM on May 17:
+Three jobs scheduled from 8:00 AM on May 17th:
 
-| Job | Duration | Deadline | Recommended Start | Cost Savings |
-|-----|----------|----------|-------------------|-------------|
-| ETL pipeline | 2 hr | 2:00 PM | lowest-cost 2hr window | ~15–25% |
-| Model training | 6 hr | Tomorrow 9 AM | overnight low-price window | ~20–35% |
-| Data export | 1 hr | 11:00 AM | cheapest available hour | ~5–15% |
+| Job            | Duration | Deadline      | Recommended Start          | Cost Savings |
+| -------------- | -------- | ------------- | -------------------------- | ------------ |
+| ETL pipeline   | 2 hr     | 2:00 PM       | lowest-cost 2hr window     | ~15–25%      |
+| Model training | 6 hr     | Tomorrow 9 AM | overnight low-price window | ~20–35%      |
+| Data export    | 1 hr     | 11:00 AM      | cheapest available hour    | ~5–15%       |
